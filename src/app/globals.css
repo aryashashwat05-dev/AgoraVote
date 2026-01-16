@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 45 95% 55%; /* Bright Yellow/Gold */
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 45 90% 85%; /* Lighter Yellow */
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 45 95% 55%;
+    --chart-1: 45 95% 55%;
+    --chart-2: 35 90% 65%;
+    --chart-3: 25 85% 60%;
+    --chart-4: 55 75% 70%;
+    --chart-5: 200 80% 60%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 60 9.1% 97.8%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 60 9.1% 97.8%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 60 9.1% 97.8%;
+    --primary: 45 95% 55%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 60 9.1% 97.8%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 45 90% 85%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 45 95% 55%;
+    --chart-1: 45 95% 55%;
+    --chart-2: 35 90% 65%;
+    --chart-3: 25 85% 60%;
+    --chart-4: 55 75% 70%;
+    --chart-5: 200 80% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ffffff'/%3E%3Cpath d='M85 75 L82.5 79.33 L87.5 79.33 L90 75 L87.5 70.67 L82.5 70.67 Z' fill='%23FACC15' fill-opacity='0.8'/%3E%3Cpath d='M65 95 L62.5 99.33 L67.5 99.33 L70 95 L67.5 90.67 L62.5 90.67 Z' fill='none' stroke='%23FBBF24' stroke-width='0.5'/%3E%3Cpath d='M20 90 L17.5 94.33 L22.5 94.33 L25 90 L22.5 85.67 L17.5 85.67 Z' fill='%23FACC15' fill-opacity='0.7'/%3E%3Cpath d='M55 25 L52.5 29.33 L57.5 29.33 L60 25 L57.5 20.67 L52.5 20.67 Z' fill='none' stroke='%23FBBF24' stroke-width='0.5'/%3E%3C/svg%3E");
+    background-size: auto;
+    background-position: bottom left;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline text-foreground;
+  }
+}

@@ -1,0 +1,209 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the AgoraVote platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user (corresponds to Firebase Auth UID)."
+        },
+        "username": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (admin, joinee, or developer).",
+          "enum": ["admin", "joinee", "developer"]
+        },
+        "dailyVoteCount": {
+            "type": "number",
+            "description": "The number of votes the user has cast today."
+        },
+        "lastVoteTimestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the user's last vote."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "VotingRoom": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VotingRoom",
+      "type": "object",
+      "description": "Represents an isolated voting room.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the voting room."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the voting room."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the voting room's purpose."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user (admin) who owns and manages the room."
+        },
+        "code": {
+          "type": "string",
+          "description": "A unique, short, human-readable code for joining the room."
+        },
+        "isVotingOpen": {
+            "type": "boolean",
+            "description": "Indicates if the voting is currently active or closed."
+        },
+        "topic": {
+            "type": "string",
+            "description": "The topic being voted on."
+        },
+        "lectureTime": {
+            "type": "string",
+            "description": "The scheduled time for the lecture."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the room was created."
+        },
+        "winnerAnnounced": {
+          "type": "boolean",
+          "description": "Flag to indicate if the winner has been announced."
+        },
+        "winnerOption": {
+          "type": "string",
+          "description": "The winning vote option."
+        },
+        "predictionConfidence": {
+          "type": "number",
+          "description": "The AI's confidence in its prediction (0-100)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "ownerId",
+        "code",
+        "isVotingOpen",
+        "createdAt"
+      ]
+    },
+    "Vote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vote",
+      "type": "object",
+      "description": "Represents a single vote cast by a user within a voting room.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vote (typically the voter's UID)."
+        },
+        "roomId": {
+          "type": "string",
+          "description": "The ID of the voting room this vote belongs to."
+        },
+        "voterId": {
+          "type": "string",
+          "description": "The UID of the user who cast the vote."
+        },
+        "voteOption": {
+          "type": "string",
+          "description": "The selected vote option (e.g., 'Attend Class', 'Bunk Class')."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of when the vote was cast.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "roomId",
+        "voterId",
+        "voteOption",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous",
+      "google.com",
+      "github.com",
+      "microsoft.com"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/entities/User"
+          },
+          "description": "Stores public user profiles. The `userId` matches the Firebase Auth UID. Each user can only write to their own document."
+        }
+      },
+      {
+        "path": "/voting_rooms/{roomId}",
+        "definition": {
+          "entityName": "VotingRoom",
+          "schema": {
+            "$ref": "#/entities/VotingRoom"
+          },
+          "description": "Stores information for individual, isolated voting rooms. Only the user designated as `ownerId` can modify or delete the room."
+        }
+      },
+      {
+        "path": "/voting_rooms/{roomId}/votes/{voteId}",
+        "definition": {
+          "entityName": "Vote",
+          "schema": {
+            "$ref": "#/entities/Vote"
+          },
+          "description": "Stores the votes cast within a specific voting room. The `{voteId}` is the UID of the voter to enforce the one-vote-per-user rule. The data is denormalized with `roomId` for security rule efficiency."
+        }
+      },
+      {
+        "path": "/voting_rooms/{roomId}/archived_votes/{voteId}",
+        "definition": {
+          "entityName": "Vote",
+          "schema": {
+            "$ref": "#/entities/Vote"
+          },
+          "description": "Stores votes from a previous session in this room. This data is kept for historical analysis and AI predictions but does not count towards the current active vote. Only admins can read this data."
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/entities/User"
+          },
+          "description": "A collection to grant admin privileges. If a document exists with a `userId` matching a user's UID, that user is considered an admin. Used for role-based access control in security rules."
+        }
+      }
+    ]
+  }
+}

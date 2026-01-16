@@ -1,0 +1,135 @@
+
+/**
+ * @fileoverview Firestore Security Rules for AgoraVote.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles and a room-ownership
+ * model for voting rooms. Access is governed by authentication status and user roles
+ * (admin, joinee, developer). It ensures that multiple voting rooms can operate
+ * simultaneously and in isolation.
+ *
+ * Data Structure:
+ * - /users/{userId}: Public user profiles, writable only by the owner.
+ * - /voting_rooms/{roomId}: Isolated voting rooms. Only the owner (admin) can manage the room.
+ * - /voting_rooms/{roomId}/votes/{voteId}: Votes cast within a room. `voteId` is the voter's UID to enforce one vote per user per room.
+ * - /voting_rooms/{roomId}/archived_votes/{voteId}: Historical votes for AI analysis. Read-only for admins.
+ * - /roles_admin/{userId}: A collection for designating admin users.
+ *
+ * Key Security Decisions:
+ * - User data is private: Users can only read and write their own profile.
+ * - Room Isolation: All operations for rooms and votes are scoped by `roomId`.
+ * - Admin Control: Only the `ownerId` of a room can update its details, control voting status, or archive votes.
+ * - Secure Voting: A user can only vote once per room. Votes cannot be updated or deleted after being cast.
+ * - Role-Based Access: Admin privileges are checked by looking for a document in the `/roles_admin` collection.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * User profile management. Only the authenticated user can manage their own profile.
+     * Listing users is disallowed to prevent data scraping.
+     */
+    match /users/{userId} {
+      function isOwner() {
+        return request.auth.uid == userId;
+      }
+
+      allow read, update, delete: if isSignedIn() && isOwner();
+      allow create: if isSignedIn() && isOwner() && request.resource.data.id == request.auth.uid;
+      allow list: if false;
+    }
+
+    /**
+     * Manages isolated voting rooms.
+     * Any signed-in user can read or list rooms to find one to join.
+     * Creation is restricted to the user who will own the room.
+     * Updates and deletion are restricted to the owner.
+     */
+    match /voting_rooms/{roomId} {
+      function isOwner() {
+        // resource is data that exists in Firestore
+        return request.auth.uid == resource.data.ownerId;
+      }
+      
+      function isCreatingOwnRoom() {
+        // request.resource is data for the incoming request
+        return request.resource.data.ownerId == request.auth.uid;
+      }
+
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isCreatingOwnRoom();
+      allow update, delete: if isSignedIn() && isOwner();
+    }
+
+    /**
+     * Manages votes within a specific, isolated voting room.
+     * The path ensures rules are only evaluated for a single room at a time.
+     */
+    match /voting_rooms/{roomId}/votes/{voteId} {
+
+      function hasNotVoted() {
+        // Checks that a vote from this user doesn't already exist IN THIS ROOM.
+        // The voteId is the user's UID, so we check for a doc with that ID.
+        return !exists(/databases/$(database)/documents/voting_rooms/$(roomId)/votes/$(request.auth.uid));
+      }
+      
+      function isCastingOwnVote() {
+        // Ensures the voterId in the document is the UID of the person making the request
+        // and the voteId (document ID) also matches their UID.
+        return request.resource.data.voterId == request.auth.uid && request.auth.uid == voteId;
+      }
+      
+      function isVotingOpen() {
+        // get() call to check the parent room's status.
+        return get(/databases/$(database)/documents/voting_rooms/$(roomId)).data.isVotingOpen == true;
+      }
+
+      allow read, list: if isSignedIn();
+      // To create a vote, the user must:
+      // 1. Be signed in.
+      // 2. Be casting their own vote (voterId and voteId match their UID).
+      // 3. Not have voted in this room before.
+      // 4. Be voting for the correct room (roomId in data matches path).
+      // 5. The voting session in the room must be open.
+      allow create: if isSignedIn() && isCastingOwnVote() && hasNotVoted() && request.resource.data.roomId == roomId && isVotingOpen();
+      
+      // Votes are immutable. They cannot be updated or deleted by users.
+      // Admins can delete votes (remove participants).
+      allow update: if false;
+      allow delete: if get(/databases/$(database)/documents/voting_rooms/$(roomId)).data.ownerId == request.auth.uid;
+    }
+    
+    /**
+     * Manages archived votes.
+     * This data is for historical analysis. Only the room owner (admin) can interact with it.
+     * Users cannot read, list, or write to this collection.
+     */
+    match /voting_rooms/{roomId}/archived_votes/{voteId} {
+      function isRoomOwner() {
+        return get(/databases/$(database)/documents/voting_rooms/$(roomId)).data.ownerId == request.auth.uid;
+      }
+      
+      // Only the admin can create (archive) and read these documents.
+      allow read, create: if isSignedIn() && isRoomOwner();
+      allow list, update, delete: if false;
+    }
+
+    /**
+     * Manages admin roles. Only existing admins can grant admin privileges.
+     */
+    match /roles_admin/{userId} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+  }
+}
