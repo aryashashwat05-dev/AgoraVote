@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuth, useUser, setDocumentNonBlocking } from '@/firebase';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
@@ -25,7 +25,7 @@ import { doc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { OAuthButtons } from '@/components/OAuthButtons';
+import { OAuthButtons } from '@/components/OAuthButton';
 
 const AppLogo: FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg
